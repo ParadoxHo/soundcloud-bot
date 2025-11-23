@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import os
 import sys
 import json
@@ -21,7 +21,6 @@ if not BOT_TOKEN:
     print("📝 Добавьте переменную BOT_TOKEN в настройках Railway")
     sys.exit(1)
 
-# Очищаем и форматируем ADMIN_IDS
 ADMIN_IDS = [id.strip() for id in ADMIN_IDS if id.strip()]
 
 if not ADMIN_IDS:
@@ -29,38 +28,40 @@ if not ADMIN_IDS:
 else:
     print(f"✅ Админы настроены: {ADMIN_IDS}")
 
-RESULTS_PER_PAGE = 10  # Увеличено с 8 до 10
+RESULTS_PER_PAGE = 10
 DATA_FILE = Path('user_data.json')
 CHARTS_FILE = Path('charts_cache.json')
-MAX_FILE_SIZE_MB = 50  # Максимальный размер для скачивания
+MAX_FILE_SIZE_MB = 50
 
-# ОГРАНИЧЕНИЯ ДЛЯ СТАБИЛЬНОСТИ
-MAX_CONCURRENT_DOWNLOADS = 1
+MAX_CONCURRENT_DOWNLOADS = 3
 DOWNLOAD_TIMEOUT = 180
 SEARCH_TIMEOUT = 30
 
-# ПРОСТЫЕ НАСТРОЙКИ СКАЧИВАНИЯ БЕЗ КОНВЕРТАЦИИ (ТОЛЬКО TELEGRAM-СОВМЕСТИМЫЕ ФОРМАТЫ)
+DYNAMIC_TIMEOUTS = {
+    'short_track': 30,
+    'medium_track': 60, 
+    'long_track': 120,
+    'search': 25
+}
+
 SIMPLE_DOWNLOAD_OPTS = {
     'format': 'bestaudio[ext=mp3]/bestaudio[ext=m4a]/bestaudio[ext=ogg]/bestaudio[ext=wav]/bestaudio[ext=flac]/bestaudio/best',
     'outtmpl': os.path.join(tempfile.gettempdir(), '%(id)s.%(ext)s'),
     'quiet': True,
     'no_warnings': True,
-    
-    # БЕЗ КОНВЕРТАЦИИ - скачиваем как есть
-    'retries': 2,
-    'fragment_retries': 2,
+    'retries': 3,
+    'fragment_retries': 3,
     'skip_unavailable_fragments': True,
     'noprogress': True,
     'nopart': True,
     'nooverwrites': True,
     'noplaylist': True,
-    'max_filesize': 45000000,  # ~45MB
+    'max_filesize': 45000000,
     'ignoreerrors': True,
     'ignore_no_formats_error': True,
     'socket_timeout': 30,
 }
 
-# БЫСТРЫЕ НАСТРОЙКИ ДЛЯ ПОЛУЧЕНИЯ ИНФОРМАЦИИ
 FAST_INFO_OPTS = {
     'quiet': True,
     'no_warnings': True,
@@ -76,11 +77,10 @@ FAST_INFO_OPTS = {
 DURATION_FILTERS = {
     'no_filter': 'Без фильтра',
     'up_to_5min': 'До 5 минут',
-    'up_to_10min': 'До 10 минут',
+    'up_to_10min': 'До 10 минут', 
     'up_to_20min': 'До 20 минут',
 }
 
-# Умные плейлисты (шаблоны)
 SMART_PLAYLISTS = {
     'work_focus': {
         'name': '💼 Фокус и работа',
@@ -98,7 +98,7 @@ SMART_PLAYLISTS = {
         'description': 'Спокойная музыка для расслабления'
     },
     'party': {
-        'name': '🎉 Вечеринка',
+        'name': '🎉 Вечеринка', 
         'queries': ['party hits', 'dance music', 'club mix', 'top hits', 'festival music'],
         'description': 'Танцевальная музыка для вечеринок'
     },
@@ -109,7 +109,6 @@ SMART_PLAYLISTS = {
     }
 }
 
-# Список для случайных треков
 RANDOM_SEARCHES = [
     'lo fi beats', 'chillhop', 'deep house', 'synthwave', 'indie rock',
     'electronic music', 'jazz lounge', 'ambient', 'study music',
@@ -122,10 +121,9 @@ RANDOM_SEARCHES = [
     'techno music', 'trance music', 'hip hop instrumental', 'rap beats'
 ]
 
-# Популярные запросы для чартов (кэш)
 POPULAR_SEARCHES = [
     'the weeknd', 'taylor swift', 'bad bunny', 'ariana grande', 'drake',
-    'billie eilish', 'ed sheeran', 'dualipa', 'post malone', 'kanye west',
+    'billie eilish', 'ed sheeran', 'dualipa', 'post malone', 'kanye west', 
     'coldplay', 'maroon 5', 'bruno mars', 'adele', 'justin bieber',
     'kendrick lamar', 'travis scott', 'doja cat', 'olivia rodrigo', 'harry styles'
 ]
@@ -211,11 +209,9 @@ load_data()
 # ==================== АДМИН-ФУНКЦИИ ====================
 
 def is_admin(user_id: str) -> bool:
-    """Проверяет, является ли пользователь админом"""
     return str(user_id) in ADMIN_IDS
 
 async def require_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Декоратор для проверки прав админа"""
     user_id = str(update.effective_user.id)
     if not is_admin(user_id):
         await update.message.reply_text("❌ Команда не найдена")
@@ -223,7 +219,6 @@ async def require_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return True
 
 async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Статистика только для админа"""
     if not await require_admin(update, context):
         return
 
@@ -243,7 +238,6 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode='HTML')
 
 async def admin_cleanup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Очистка кэша только для админа"""
     if not await require_admin(update, context):
         return
 
@@ -281,7 +275,6 @@ async def admin_cleanup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def admin_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Информация о файлах только для админа"""
     if not await require_admin(update, context):
         return
 
@@ -301,7 +294,6 @@ charts_cache.json: {charts_cache_size / 1024:.1f} KB
         await update.message.reply_text(f"❌ Ошибка: {str(e)}")
 
 async def admin_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Помощь по админ-командам"""
     if not await require_admin(update, context):
         return
 
@@ -315,7 +307,6 @@ async def admin_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode='HTML')
 
 def setup_admin_commands(app):
-    """Регистрация админ-команд"""
     if ADMIN_IDS:
         app.add_handler(CommandHandler('admin_stats', admin_stats))
         app.add_handler(CommandHandler('admin_cleanup', admin_cleanup))
@@ -325,13 +316,45 @@ def setup_admin_commands(app):
     else:
         print("⚠️  Админ-команды отключены (ADMIN_IDS не настроен)")
 
-# ==================== MAIN BOT CLASS ====================
+# ==================== УЛУЧШЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ ====================
+
+class NotificationManager:
+    @staticmethod
+    async def send_progress(update, context, stage: str, track=None, **kwargs):
+        stages = {
+            'searching': "🔍 Ищем треки...",
+            'downloading': "⬇️ Скачиваем аудио...", 
+            'processing': "🔄 Обрабатываем файл...",
+            'sending': "📤 Отправляем в Telegram...",
+            'success': "✅ Готово!",
+            'error': "❌ Ошибка"
+        }
+        
+        message = stages.get(stage, "⏳ Работаем...")
+        if track and stage != 'searching':
+            title = track.get('title', 'Неизвестный трек')[:30]
+            message = f"{message}\n🎵 {title}"
+            
+        try:
+            if hasattr(update, 'callback_query') and update.callback_query:
+                await update.callback_query.edit_message_text(message)
+            else:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id, 
+                    text=message
+                )
+        except Exception as e:
+            logger.warning(f"Ошибка уведомления: {e}")
+
+# ==================== ОСНОВНОЙ КЛАСС БОТА ====================
+
 class StableMusicBot:
     def __init__(self):
         self.user_stats = user_data.get('_user_stats', {})
         self.track_info_cache = {}
         self.download_semaphore = asyncio.Semaphore(MAX_CONCURRENT_DOWNLOADS)
         self.search_semaphore = asyncio.Semaphore(3)
+        self.notifications = NotificationManager()
         logger.info('✅ Бот инициализирован')
 
     def ensure_user(self, user_id: str):
@@ -367,6 +390,10 @@ class StableMusicBot:
     def clean_title(title: str) -> str:
         if not title:
             return 'Неизвестный трек'
+        try:
+            title = title.encode('utf-8').decode('utf-8')
+        except:
+            pass
         title = re.sub(r".*?|.*?", '', title)
         tags = ['official video', 'official music video', 'lyric video', 'hd', '4k',
                 '1080p', '720p', 'official audio', 'audio']
@@ -384,286 +411,7 @@ class StableMusicBot:
         except Exception:
             return '00:00'
 
-    # ==================== УМНЫЕ УВЕДОМЛЕНИЯ ====================
-
-    async def send_smart_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, 
-                                    message_type: str, **kwargs) -> bool:
-        """Отправляет умные контекстные уведомления"""
-        try:
-            notifications = {
-                'search_start': self._search_start_notification,
-                'search_results': self._search_results_notification,
-                'download_start': self._download_start_notification,
-                'download_progress': self._download_progress_notification,
-                'download_success': self._download_success_notification,
-                'download_large_file': self._download_large_file_notification,
-                'download_error': self._download_error_notification,
-                'recommendations_ready': self._recommendations_ready_notification,
-                'charts_ready': self._charts_ready_notification,
-                'playlist_ready': self._playlist_ready_notification,
-                'main_menu': self._main_menu_notification,
-            }
-            
-            if message_type in notifications:
-                return await notifications[message_type](update, context, **kwargs)
-            else:
-                return False
-                
-        except Exception as e:
-            logger.error(f"Ошибка отправки умного уведомления: {e}")
-            return False
-
-    async def _search_start_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о начале поиска"""
-        query = kwargs.get('query', '')
-        text = f"🔍 <b>Ищу на SoundCloud</b>\n\n📝 Запрос: <code>{query}</code>\n⏱️ Ожидайте ~10-20 секунд"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _search_results_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о результатах поиска"""
-        results_count = kwargs.get('results_count', 0)
-        query = kwargs.get('query', '')
-        filtered_count = kwargs.get('filtered_count', 0)
-        
-        duration_filter = "• Без фильтра"
-        if kwargs.get('duration_filter') and kwargs.get('duration_filter') != 'no_filter':
-            duration_filter = f"• {DURATION_FILTERS.get(kwargs.get('duration_filter'), '')}"
-        
-        text = f"✅ <b>Результаты поиска</b>\n\n"
-        text += f"📝 Запрос: <code>{query}</code>\n"
-        text += f"📊 Найдено: {results_count} треков\n"
-        if filtered_count != results_count:
-            text += f"🎯 После фильтров: {filtered_count} треков\n"
-        text += f"⏱️ {duration_filter}"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _download_start_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о начале скачивания"""
-        track = kwargs.get('track', {})
-        title = track.get('title', 'Неизвестный трек')
-        duration = self.format_duration(track.get('duration'))
-        estimated_size = kwargs.get('estimated_size')
-        
-        text = f"⏬ <b>Начинаю скачивание</b>\n\n"
-        text += f"🎵 Трек: <b>{title}</b>\n"
-        text += f"⏱️ Длительность: {duration}\n"
-        if estimated_size:
-            text += f"💾 Примерный размер: {estimated_size:.1f} MB\n"
-        text += f"⚡ Ожидайте ~15-30 секунд"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _download_progress_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о прогрессе скачивания"""
-        track = kwargs.get('track', {})
-        title = track.get('title', 'Неизвестный трек')
-        stage = kwargs.get('stage', 'processing')
-        
-        stages = {
-            'downloading': "⬇️ Скачивание аудио",
-            'processing': "🔄 Обработка файла", 
-            'sending': "📤 Отправка в Telegram"
-        }
-        
-        text = f"⏳ <b>В процессе</b>\n\n"
-        text += f"🎵 Трек: <b>{title}</b>\n"
-        text += f"📊 Статус: {stages.get(stage, 'Обработка')}\n"
-        text += f"⏰ Подождите немного..."
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _download_success_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление об успешном скачивании"""
-        track = kwargs.get('track', {})
-        actual_size = kwargs.get('actual_size', 0)
-        file_format = kwargs.get('file_format', 'audio')
-        
-        title = track.get('title', 'Неизвестный трек')
-        artist = track.get('artist', 'Неизвестный исполнитель')
-        duration = self.format_duration(track.get('duration'))
-        
-        text = f"✅ <b>Успешно скачан!</b>\n\n"
-        text += f"🎵 Трек: <b>{title}</b>\n"
-        text += f"🎤 Исполнитель: {artist}\n"
-        text += f"⏱️ Длительность: {duration}\n"
-        text += f"💾 Размер: {actual_size:.1f} MB\n"
-        text += f"📦 Формат: {file_format.upper()}\n\n"
-        text += f"🎯 Трек добавлен в вашу историю"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _download_large_file_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о большом файле"""
-        track = kwargs.get('track', {})
-        file_size = kwargs.get('file_size', 0)
-        
-        title = track.get('title', 'Неизвестный трек')
-        artist = track.get('artist', 'Неизвестный исполнитель')
-        duration = self.format_duration(track.get('duration'))
-        
-        text = f"📦 <b>Файл слишком большой</b>\n\n"
-        text += f"🎵 Трек: <b>{title}</b>\n"
-        text += f"🎤 Исполнитель: {artist}\n"
-        text += f"⏱️ Длительность: {duration}\n"
-        text += f"💾 Размер: {file_size:.1f} MB\n\n"
-        text += f"⚠️ <b>Превышен лимит Telegram в {MAX_FILE_SIZE_MB} MB</b>\n"
-        text += f"🎧 Вы можете прослушать трек онлайн"
-        
-        keyboard = [
-            [InlineKeyboardButton('🎧 Слушать онлайн', url=track.get('webpage_url', ''))],
-            [InlineKeyboardButton('🔍 Новый поиск', callback_data='new_search')],
-            [InlineKeyboardButton('🏠 В главное меню', callback_data='back_to_main')],
-        ]
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(
-                text, 
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-        else:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-        return True
-
-    async def _download_error_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление об ошибке скачивания"""
-        track = kwargs.get('track', {})
-        error_type = kwargs.get('error_type', 'unknown')
-        
-        title = track.get('title', 'Неизвестный трек')
-        
-        errors = {
-            'timeout': "⏰ Превышено время ожидания",
-            'no_audio': "🎵 Аудио файл не найден",
-            'download_failed': "❌ Ошибка скачивания",
-            'unknown': "❌ Неизвестная ошибка"
-        }
-        
-        text = f"❌ <b>Ошибка обработки</b>\n\n"
-        text += f"🎵 Трек: <b>{title}</b>\n"
-        text += f"📊 Проблема: {errors.get(error_type, 'Неизвестная ошибка')}\n\n"
-        text += f"💡 Попробуйте другой трек или повторите позже"
-        
-        keyboard = [
-            [InlineKeyboardButton('🔍 Новый поиск', callback_data='new_search')],
-            [InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track')],
-            [InlineKeyboardButton('🏠 В главное меню', callback_data='back_to_main')],
-        ]
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(
-                text, 
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-        else:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=text,
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-        return True
-
-    async def _recommendations_ready_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о готовых рекомендациях"""
-        recommendations_count = kwargs.get('recommendations_count', 0)
-        history_count = kwargs.get('history_count', 0)
-        
-        text = f"🎯 <b>Ваши рекомендации готовы!</b>\n\n"
-        text += f"📊 Найдено треков: {recommendations_count}\n"
-        if history_count > 0:
-            text += f"📈 На основе {history_count} скачанных треков\n"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _charts_ready_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о готовых чартах"""
-        charts_count = kwargs.get('charts_count', 0)
-        
-        text = f"📊 <b>Топ чарты загружены!</b>\n\n"
-        text += f"🎵 Популярных треков: {charts_count}\n"
-        text += f"🌍 Актуальные тренды SoundCloud"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _playlist_ready_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление о готовом плейлисте"""
-        playlist_name = kwargs.get('playlist_name', 'Плейлист')
-        tracks_count = kwargs.get('tracks_count', 0)
-        description = kwargs.get('description', '')
-        
-        text = f"🎭 <b>{playlist_name}</b>\n\n"
-        text += f"🎵 Найдено треков: {tracks_count}\n"
-        if description:
-            text += f"💡 {description}"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    async def _main_menu_notification(self, update: Update, context: ContextTypes.DEFAULT_TYPE, **kwargs):
-        """Уведомление главного меню с статистикой"""
-        user = update.effective_user
-        user_entry = user_data.get(str(user.id), {})
-        
-        downloads_count = len(user_entry.get('download_history', []))
-        searches_count = len(user_entry.get('search_history', []))
-        
-        text = f"🏠 <b>Главное меню</b>\n\n"
-        text += f"👋 Привет, {user.first_name}!\n\n"
-        text += f"📊 <b>Ваша статистика:</b>\n"
-        text += f"📥 Скачано треков: {downloads_count}\n"
-        text += f"🔍 Выполнено поисков: {searches_count}\n\n"
-        text += f"🎵 <b>Выберите действие:</b>"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(text, parse_mode='HTML')
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-        return True
-
-    # ==================== ПРОВЕРКА РАЗМЕРА ФАЙЛА ДО СКАЧИВАНИЯ ====================
-
-    async def check_file_size_before_download(self, url: str) -> float:
-        """Проверяет размер файла до скачивания"""
+    async def check_file_size_before_download(self, url: str, track: dict) -> tuple:
         try:
             with yt_dlp.YoutubeDL(FAST_INFO_OPTS) as ydl:
                 info = await asyncio.get_event_loop().run_in_executor(
@@ -676,143 +424,73 @@ class StableMusicBot:
                 elif info and 'filesize_approx' in info and info['filesize_approx']:
                     file_size = info['filesize_approx'] / (1024 * 1024)
 
-                return file_size
+                duration = track.get('duration', 0)
+                if duration > 1800:
+                    can_download = file_size < (MAX_FILE_SIZE_MB * 0.7)
+                else:
+                    can_download = file_size < MAX_FILE_SIZE_MB
+
+                return file_size, can_download
 
         except Exception as e:
             logger.warning(f"Не удалось получить размер файла: {e}")
-            return 0
+            return 0, True
 
-    # ==================== УЛУЧШЕННЫЙ МЕТОД СКАЧИВАНИЯ ====================
+    def _get_dynamic_timeout(self, track: dict) -> int:
+        duration = track.get('duration', 0)
+        if duration < 180:
+            return DYNAMIC_TIMEOUTS['short_track']
+        elif duration < 600:
+            return DYNAMIC_TIMEOUTS['medium_track']
+        else:
+            return DYNAMIC_TIMEOUTS['long_track']
 
-    async def download_and_send_track(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict) -> bool:
-        """Упрощенный метод скачивания БЕЗ конвертации"""
-        url = track.get('webpage_url') or track.get('url')
-        if not url:
-            return False
-
-        # ПРОВЕРКА РАЗМЕРА ПЕРЕД СКАЧИВАНИЕМ
-        file_size_mb = await self.check_file_size_before_download(url)
-        if file_size_mb >= MAX_FILE_SIZE_MB:
-            logger.info(f"📦 Файл слишком большой ({file_size_mb:.1f} MB), предлагаем онлайн прослушивание")
-            await self.send_smart_notification(
-                update, context, 'download_large_file',
-                track=track, file_size=file_size_mb
-            )
-            return False
-
-        async with self.download_semaphore:
-            try:
-                # Уведомление о начале скачивания
-                await self.send_smart_notification(
-                    update, context, 'download_start',
-                    track=track, estimated_size=file_size_mb
-                )
-                
-                return await asyncio.wait_for(
-                    self.simple_download(update, context, track),
-                    timeout=DOWNLOAD_TIMEOUT
-                )
-            except asyncio.TimeoutError:
-                logger.error(f"Таймаут скачивания трека: {track.get('title', 'Unknown')}")
-                await self.send_smart_notification(
-                    update, context, 'download_error',
-                    track=track, error_type='timeout'
-                )
-                return False
-            except Exception as e:
-                logger.exception(f'Ошибка скачивания трека: {e}')
-                await self.send_smart_notification(
-                    update, context, 'download_error', 
-                    track=track, error_type='download_failed'
-                )
-                return False
-
-    async def simple_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict) -> bool:
-        """ПРОСТОЕ скачивание в Telegram-совместимом формате"""
-        url = track.get('webpage_url') or track.get('url')
-        if not url:
-            return False
-
-        loop = asyncio.get_event_loop()
-        tmpdir = tempfile.mkdtemp()
+    async def _handle_large_file(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict, file_size: float):
+        title = track.get('title', 'Неизвестный трек')
+        artist = track.get('artist', 'Неизвестный исполнитель')
         
+        text = f"📦 <b>Файл слишком большой</b>\n\n"
+        text += f"🎵 <b>{title}</b>\n"
+        text += f"🎤 {artist}\n"
+        text += f"💾 Размер: {file_size:.1f} MB\n\n"
+        text += f"⚠️ <b>Превышен лимит {MAX_FILE_SIZE_MB} MB</b>\n\n"
+        text += f"🎧 Вы можете:\n• Прослушать онлайн\n• Найти более короткую версию"
+
+        keyboard = [
+            [InlineKeyboardButton('🎧 Слушать онлайн', url=track.get('webpage_url', ''))],
+            [InlineKeyboardButton('🔍 Найти другую версию', callback_data=f'search_alt:{title}')],
+            [InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track')],
+        ]
+
+        if hasattr(update, 'callback_query') and update.callback_query:
+            await update.callback_query.edit_message_text(
+                text, 
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+
+    async def _find_compatible_audio_file(self, tmpdir: str) -> str:
+        telegram_audio_extensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac']
+        
+        for file in os.listdir(tmpdir):
+            file_ext = os.path.splitext(file)[1].lower()
+            if file_ext in telegram_audio_extensions:
+                logger.info(f"✅ Найден совместимый файл: {file}")
+                return file
+        
+        logger.error(f"❌ Совместимые файлы не найдены в: {os.listdir(tmpdir)}")
+        return None
+
+    async def _send_audio_file(self, update: Update, context: ContextTypes.DEFAULT_TYPE, 
+                             fpath: str, track: dict, actual_size_mb: float) -> bool:
         try:
-            # Уведомление о прогрессе - скачивание
-            await self.send_smart_notification(
-                update, context, 'download_progress',
-                track=track, stage='downloading'
-            )
-            
-            ydl_opts = SIMPLE_DOWNLOAD_OPTS.copy()
-            ydl_opts['outtmpl'] = os.path.join(tmpdir, '%(title).100s.%(ext)s')
-
-            def download_track():
-                try:
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        return ydl.extract_info(url, download=True)
-                except Exception as e:
-                    logger.error(f"Ошибка в download_track: {e}")
-                    return None
-
-            info = await asyncio.wait_for(
-                loop.run_in_executor(None, download_track),
-                timeout=DOWNLOAD_TIMEOUT - 30
-            )
-
-            if not info:
-                logger.error("❌ Не удалось скачать трек")
-                await self.send_smart_notification(
-                    update, context, 'download_error',
-                    track=track, error_type='download_failed'
-                )
-                return False
-
-            # Уведомление о прогрессе - обработка
-            await self.send_smart_notification(
-                update, context, 'download_progress',
-                track=track, stage='processing'
-            )
-
-            # ТОЛЬКО TELEGRAM-СОВМЕСТИМЫЕ ФОРМАТЫ
-            telegram_audio_extensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac']
-            audio_files = []
-            
-            for file in os.listdir(tmpdir):
-                file_ext = os.path.splitext(file)[1].lower()
-                if file_ext in telegram_audio_extensions:
-                    audio_files.append(file)
-                    logger.info(f"✅ Найден Telegram-совместимый файл: {file}")
-
-            if not audio_files:
-                logger.error(f"❌ Telegram-совместимые файлы не найдены. Содержимое: {os.listdir(tmpdir)}")
-                await self.send_smart_notification(
-                    update, context, 'download_error',
-                    track=track, error_type='no_audio'
-                )
-                return False
-            
-            # Используем первый совместимый файл
-            audio_file = audio_files[0]
-            fpath = os.path.join(tmpdir, audio_file)
-            file_format = os.path.splitext(audio_file)[1].upper().replace('.', '')
-            
-            # Проверяем размер файла (на всякий случай)
-            actual_size_mb = os.path.getsize(fpath) / (1024 * 1024)
-            
-            if actual_size_mb >= MAX_FILE_SIZE_MB:
-                await self.send_smart_notification(
-                    update, context, 'download_large_file',
-                    track=track, file_size=actual_size_mb
-                )
-                return False
-
-            # Уведомление о прогрессе - отправка
-            await self.send_smart_notification(
-                update, context, 'download_progress',
-                track=track, stage='sending'
-            )
-
-            # Отправляем файл как аудио
             with open(fpath, 'rb') as f:
                 await context.bot.send_audio(
                     chat_id=update.effective_chat.id,
@@ -822,112 +500,118 @@ class StableMusicBot:
                     caption=f"🎵 <b>{track.get('title', 'Неизвестный трек')}</b>\n🎤 {track.get('artist', 'Неизвестный исполнитель')}\n⏱️ {self.format_duration(track.get('duration'))}\n💾 {actual_size_mb:.1f} MB",
                     parse_mode='HTML',
                 )
-            
-            logger.info(f"✅ Трек отправлен в Telegram-совместимом формате: {audio_file} ({actual_size_mb:.1f} MB)")
-            
-            # Уведомление об успехе
-            await self.send_smart_notification(
-                update, context, 'download_success',
-                track=track, actual_size=actual_size_mb, file_format=file_format
-            )
-            
             return True
+        except Exception as e:
+            logger.error(f"Ошибка отправки файла: {e}")
+            return False
+
+    async def _cleanup_temp_dir(self, tmpdir: str):
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if os.path.exists(tmpdir):
+                    shutil.rmtree(tmpdir, ignore_errors=True)
+                    logger.info(f"✅ Временные файлы очищены (попытка {attempt + 1})")
+                    break
+                else:
+                    break
+            except Exception as e:
+                logger.warning(f"Не удалось очистить временную директорию (попытка {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1)
+
+    async def download_and_send_track(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict) -> bool:
+        url = track.get('webpage_url') or track.get('url')
+        if not url:
+            return False
+
+        file_size_mb, can_download = await self.check_file_size_before_download(url, track)
+        
+        if not can_download:
+            await self._handle_large_file(update, context, track, file_size_mb)
+            return False
+
+        async with self.download_semaphore:
+            try:
+                await self.notifications.send_progress(update, context, 'downloading', track)
+                
+                timeout = self._get_dynamic_timeout(track)
+                
+                return await asyncio.wait_for(
+                    self.simple_download(update, context, track),
+                    timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                logger.error(f"Таймаут скачивания трека: {track.get('title', 'Unknown')}")
+                await self.notifications.send_progress(update, context, 'error', track)
+                return False
+            except Exception as e:
+                logger.exception(f'Ошибка скачивания трека: {e}')
+                await self.notifications.send_progress(update, context, 'error', track)
+                return False
+
+    async def simple_download(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict) -> bool:
+        url = track.get('webpage_url') or track.get('url')
+        if not url:
+            return False
+
+        loop = asyncio.get_event_loop()
+        tmpdir = tempfile.mkdtemp()
+        
+        try:
+            await self.notifications.send_progress(update, context, 'processing', track)
+            
+            ydl_opts = SIMPLE_DOWNLOAD_OPTS.copy()
+            ydl_opts['outtmpl'] = os.path.join(tmpdir, '%(title).100s.%(ext)s')
+
+            def download_track():
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        return ydl.extract_info(url, download=True)
+                except Exception as e:
+                    logger.error(f"Ошибка скачивания: {e}")
+                    return None
+
+            info = await asyncio.wait_for(
+                loop.run_in_executor(None, download_track),
+                timeout=DOWNLOAD_TIMEOUT - 30
+            )
+
+            if not info:
+                return False
+
+            audio_file = await self._find_compatible_audio_file(tmpdir)
+            if not audio_file:
+                return False
+
+            fpath = os.path.join(tmpdir, audio_file)
+            actual_size_mb = os.path.getsize(fpath) / (1024 * 1024)
+            
+            if actual_size_mb >= MAX_FILE_SIZE_MB:
+                await self._handle_large_file(update, context, track, actual_size_mb)
+                return False
+
+            await self.notifications.send_progress(update, context, 'sending', track)
+
+            success = await self._send_audio_file(update, context, fpath, track, actual_size_mb)
+            
+            if success:
+                await self.notifications.send_progress(update, context, 'success', track)
+                return True
+            return False
 
         except asyncio.TimeoutError:
             logger.error(f"Таймаут при скачивании: {track.get('title', 'Unknown')}")
-            await self.send_smart_notification(
-                update, context, 'download_error',
-                track=track, error_type='timeout'
-            )
             return False
         except Exception as e:
             logger.exception(f'Ошибка скачивания: {e}')
-            await self.send_smart_notification(
-                update, context, 'download_error',
-                track=track, error_type='download_failed'
-            )
             return False
         finally:
-            # Аккуратная очистка временных файлов
-            try:
-                shutil.rmtree(tmpdir, ignore_errors=True)
-            except Exception as e:
-                logger.warning(f"Не удалось очистить временную директорию: {e}")
-
-    # ==================== ИСПРАВЛЕННЫЕ МЕТОДЫ СКАЧИВАНИЯ ====================
-
-    async def download_from_recommendations(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int):
-        """Скачивание трека из рекомендаций с возвратом к списку"""
-        user = update.effective_user
-        recommendations = user_data[str(user.id)].get('current_recommendations', [])
-
-        if index < 0 or index >= len(recommendations):
-            await update.callback_query.edit_message_text('❌ Трек не найден')
-            return
-
-        track = recommendations[index]
-        await self.process_track_download_with_return(update, context, track, 'recommendations')
-
-    async def download_from_charts(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int):
-        """Скачивание трека из чартов с возвратом к списку"""
-        user = update.effective_user
-        charts = user_data[str(user.id)].get('current_charts', [])
-        current_page = user_data[str(user.id)].get('charts_page', 0)
-
-        if index < 0 or index >= len(charts):
-            await update.callback_query.edit_message_text('❌ Трек не найден')
-            return
-
-        track = charts[index]
-        await self.process_track_download_with_return(update, context, track, 'charts', current_page)
-
-    async def download_from_playlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int):
-        """Скачивание трека из плейлиста с возвратом к списку"""
-        user = update.effective_user
-        playlist = user_data[str(user.id)].get('current_playlist', {})
-        tracks = playlist.get('tracks', [])
-        current_page = user_data[str(user.id)].get('playlist_page', 0)
-
-        if index < 0 or index >= len(tracks):
-            await update.callback_query.edit_message_text('❌ Трек не найден')
-            return
-
-        track = tracks[index]
-        await self.process_track_download_with_return(update, context, track, 'playlist', current_page)
-
-    async def process_track_download_with_return(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict, source: str, return_page: int = 0):
-        """Обрабатывает скачивание трека и возвращает к исходному списку"""
-        query = update.callback_query
-        user = update.effective_user
-
-        success = await self.download_and_send_track(update, context, track)
-
-        if success:
-            stats = user_data.get('_user_stats', {}).get(str(user.id), {})
-            stats['downloads'] = stats.get('downloads', 0) + 1
-            save_data()
-
-            user_entry = user_data[str(user.id)]
-            download_history = user_entry.get('download_history', [])
-            download_history.append(track)
-            user_entry['download_history'] = download_history[-50:]
-            save_data()
-
-            # Возвращаемся к исходному списку
-            if source == 'recommendations':
-                await self.show_recommendations_page(update, context, 0)
-            elif source == 'charts':
-                await self.show_charts_page(update, context, return_page)
-            elif source == 'playlist':
-                await self.show_playlist_page(update, context, return_page)
-        else:
-            # Если скачивание не удалось (например, файл слишком большой), не возвращаемся к списку
-            # так как уже показали опцию онлайн прослушивания
-            pass
+            await self._cleanup_temp_dir(tmpdir)
 
     # ==================== РЕКОМЕНДАЦИИ ====================
 
-    async def get_recommendations(self, user_id: str, limit: int = 30) -> list:  # Увеличено с 6 до 30
+    async def get_recommendations(self, user_id: str, limit: int = 30) -> list:
         """Получает рекомендации на основе истории пользователя"""
         user_entry = user_data.get(str(user_id), {})
         download_history = user_entry.get('download_history', [])
@@ -940,7 +624,7 @@ class StableMusicBot:
 
         recommendations = []
 
-        for track in download_history[-10:]:  # Увеличено с 5 до 10
+        for track in download_history[-10:]:
             if track not in recommendations:
                 recommendations.append(track)
 
@@ -965,7 +649,7 @@ class StableMusicBot:
         if not download_history:
             return []
 
-        recent_titles = [track.get('title', '').lower() for track in download_history[-5:]]  # Увеличено с 3 до 5
+        recent_titles = [track.get('title', '').lower() for track in download_history[-5:]]
 
         genres = []
         for title in recent_titles:
@@ -978,17 +662,17 @@ class StableMusicBot:
             elif any(word in title for word in ['jazz', 'blues']):
                 genres.append('jazz')
 
-        return list(set(genres))[:3]  # Увеличено с 2 до 3
+        return list(set(genres))[:3]
 
-    async def get_popular_recommendations(self, limit: int = 15) -> list:  # Увеличено с 3 до 15
+    async def get_popular_recommendations(self, limit: int = 15) -> list:
         """Быстрые популярные рекомендации"""
         popular_tracks = []
 
-        for query in POPULAR_SEARCHES[:4]:  # Увеличено с 2 до 4
+        for query in POPULAR_SEARCHES[:4]:
             try:
                 results = await self.search_soundcloud(query, album_only=False)
                 if results:
-                    popular_tracks.extend(results[:8])  # Увеличено с 2 до 8
+                    popular_tracks.extend(results[:8])
             except Exception as e:
                 logger.warning(f"Ошибка поиска популярных треков: {e}")
 
@@ -1006,7 +690,7 @@ class StableMusicBot:
             return
 
         try:
-            recommendations = await self.get_recommendations(user.id, 30)  # Увеличено с 6 до 30
+            recommendations = await self.get_recommendations(user.id, 30)
 
             if not recommendations:
                 await status_msg.edit_text(
@@ -1108,6 +792,18 @@ class StableMusicBot:
         user_data[str(user.id)]['recommendations_page'] = page
         save_data()
 
+    async def download_from_recommendations(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int):
+        """Скачивание трека из рекомендаций с возвратом к списку"""
+        user = update.effective_user
+        recommendations = user_data[str(user.id)].get('current_recommendations', [])
+
+        if index < 0 or index >= len(recommendations):
+            await update.callback_query.edit_message_text('❌ Трек не найден')
+            return
+
+        track = recommendations[index]
+        await self.process_track_download_with_return(update, context, track, 'recommendations')
+
     # ==================== ЧАРТЫ ====================
 
     async def update_charts_cache(self):
@@ -1123,11 +819,11 @@ class StableMusicBot:
         logger.info("🔄 Обновление кэша чартов...")
 
         charts_data = {}
-        for query in POPULAR_SEARCHES[:5]:  # Увеличено с 3 до 5
+        for query in POPULAR_SEARCHES[:5]:
             try:
                 results = await self.search_soundcloud(query, album_only=False)
                 if results:
-                    charts_data[query] = results[:10]  # Увеличено с 6 до 10
+                    charts_data[query] = results[:10]
                 await asyncio.sleep(1)
             except Exception as e:
                 logger.warning(f"Ошибка обновления чарта для {query}: {e}")
@@ -1161,7 +857,7 @@ class StableMusicBot:
                 all_tracks.extend(tracks)
 
             random.shuffle(all_tracks)
-            top_tracks = all_tracks[:30]  # Увеличено с 20 до 30
+            top_tracks = all_tracks[:30]
 
             user_data[str(user.id)]['current_charts'] = top_tracks
             user_data[str(user.id)]['charts_page'] = 0
@@ -1236,7 +932,20 @@ class StableMusicBot:
         user_data[str(user.id)]['charts_page'] = page
         save_data()
 
-    # ==================== НАСТРОЕНИЕ (бывшие плейлисты) ====================
+    async def download_from_charts(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int):
+        """Скачивание трека из чартов с возвратом к списку"""
+        user = update.effective_user
+        charts = user_data[str(user.id)].get('current_charts', [])
+        current_page = user_data[str(user.id)].get('charts_page', 0)
+
+        if index < 0 or index >= len(charts):
+            await update.callback_query.edit_message_text('❌ Трек не найден')
+            return
+
+        track = charts[index]
+        await self.process_track_download_with_return(update, context, track, 'charts', current_page)
+
+    # ==================== НАСТРОЕНИЕ (ПЛЕЙЛИСТЫ) ====================
 
     async def show_mood_playlists(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Показывает меню настроений"""
@@ -1275,11 +984,11 @@ class StableMusicBot:
 
         try:
             all_tracks = []
-            for query in playlist['queries'][:3]:  # Увеличено с 2 до 3
+            for query in playlist['queries'][:3]:
                 try:
                     results = await self.search_soundcloud(query, album_only=False)
                     if results:
-                        all_tracks.extend(results[:10])  # Увеличено с 6 до 10
+                        all_tracks.extend(results[:10])
                     await asyncio.sleep(1)
                 except Exception as e:
                     logger.warning(f"Ошибка поиска для плейлиста {query}: {e}")
@@ -1289,7 +998,7 @@ class StableMusicBot:
                 return
 
             random.shuffle(all_tracks)
-            playlist_tracks = all_tracks[:30]  # Увеличено с 20 до 30
+            playlist_tracks = all_tracks[:30]
 
             user_data[str(user.id)]['current_playlist'] = {
                 'tracks': playlist_tracks,
@@ -1372,41 +1081,53 @@ class StableMusicBot:
         user_data[str(user.id)]['playlist_page'] = page
         save_data()
 
+    async def download_from_playlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int):
+        """Скачивание трека из плейлиста с возвратом к списку"""
+        user = update.effective_user
+        playlist = user_data[str(user.id)].get('current_playlist', {})
+        tracks = playlist.get('tracks', [])
+        current_page = user_data[str(user.id)].get('playlist_page', 0)
+
+        if index < 0 or index >= len(tracks):
+            await update.callback_query.edit_message_text('❌ Трек не найден')
+            return
+
+        track = tracks[index]
+        await self.process_track_download_with_return(update, context, track, 'playlist', current_page)
+
+    async def process_track_download_with_return(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict, source: str, return_page: int = 0):
+        """Обрабатывает скачивание трека и возвращает к исходному списку"""
+        query = update.callback_query
+        user = update.effective_user
+
+        success = await self.download_and_send_track(update, context, track)
+
+        if success:
+            stats = user_data.get('_user_stats', {}).get(str(user.id), {})
+            stats['downloads'] = stats.get('downloads', 0) + 1
+            save_data()
+
+            user_entry = user_data[str(user.id)]
+            download_history = user_entry.get('download_history', [])
+            download_history.append(track)
+            user_entry['download_history'] = download_history[-50:]
+            save_data()
+
+            # Возвращаемся к исходному списку
+            if source == 'recommendations':
+                await self.show_recommendations_page(update, context, 0)
+            elif source == 'charts':
+                await self.show_charts_page(update, context, return_page)
+            elif source == 'playlist':
+                await self.show_playlist_page(update, context, return_page)
+
     # ==================== ОСНОВНЫЕ КОМАНДЫ ====================
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         self.ensure_user(user.id)
 
-        await self.send_smart_notification(update, context, 'main_menu')
-
-        keyboard = [
-            [
-                InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track'),
-                InlineKeyboardButton('🔍 Поиск', callback_data='start_search')
-            ],
-            [
-                InlineKeyboardButton('🎯 Рекомендации', callback_data='show_recommendations'),
-                InlineKeyboardButton('📊 Топ чарты', callback_data='show_charts')
-            ],
-            [
-                InlineKeyboardButton('🎭 Настроение', callback_data='mood_playlists'),
-                InlineKeyboardButton('⚙️ Настройки', callback_data='settings')
-            ]
-        ]
-
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(
-                "🎵 <b>SoundCloud Music Bot</b>\n\nВыберите действие:",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-        else:
-            await update.message.reply_text(
-                "🎵 <b>SoundCloud Music Bot</b>\n\nВыберите действие:",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
+        await self.show_main_menu(update, context)
         save_data()
 
     async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1414,16 +1135,14 @@ class StableMusicBot:
         await update.message.reply_text('🎵 Введите название песни или исполнителя:')
 
     async def random_track(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """ИСПРАВЛЕННЫЙ: Поиск и автоматическое скачивание случайного трека с одним сообщением"""
+        """Поиск и скачивание случайного трека"""
         user = update.effective_user
         self.ensure_user(user.id)
 
         random_search = random.choice(RANDOM_SEARCHES)
 
-        # СОЗДАЕМ ОДНО СООБЩЕНИЕ ДЛЯ ВСЕХ СТАТУСОВ
         if update.callback_query:
             try:
-                # Начинаем с сообщения о начале поиска
                 status_msg = await update.callback_query.message.reply_text(
                     f"🔍 <b>Ищу случайный трек</b>\n\n📝 Запрос: <code>{random_search}</code>\n⏱️ Ожидайте ~10-20 секунд",
                     parse_mode='HTML'
@@ -1446,19 +1165,8 @@ class StableMusicBot:
                 )
                 return
 
-            # ПРИМЕНЯЕМ ФИЛЬТРЫ
-            filtered = self._apply_filters(results, user.id)
-            if not filtered:
-                await status_msg.edit_text(
-                    "❌ <b>Не найдено подходящих треков после фильтров</b>\n\n"
-                    "Попробуйте изменить настройки фильтров",
-                    parse_mode='HTML'
-                )
-                return
-
-            random_track = random.choice(filtered)
+            random_track = random.choice(results)
             
-            # Обновляем статус - найден трек, начинаем скачивание
             await status_msg.edit_text(
                 f"✅ <b>Случайный трек найден!</b>\n\n"
                 f"🎵 Трек: <b>{random_track.get('title', 'Неизвестный трек')}</b>\n"
@@ -1468,8 +1176,7 @@ class StableMusicBot:
                 parse_mode='HTML'
             )
 
-            # Скачиваем трек, передавая message для редактирования
-            success = await self.download_random_track(update, context, random_track, status_msg)
+            success = await self.download_and_send_track(update, context, random_track)
 
             if success:
                 stats = user_data.get('_user_stats', {}).get(str(user.id), {})
@@ -1495,9 +1202,6 @@ class StableMusicBot:
                     reply_markup=InlineKeyboardMarkup(keyboard),
                     parse_mode='HTML'
                 )
-            else:
-                # Если скачивание не удалось, статус уже обновлен в download_random_track
-                pass
 
         except Exception as e:
             logger.exception(f'Ошибка при поиске случайного трека: {e}')
@@ -1514,150 +1218,160 @@ class StableMusicBot:
                 parse_mode='HTML'
             )
 
-    async def download_random_track(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict, status_msg):
-        """Скачивание случайного трека с обновлением одного сообщения"""
-        url = track.get('webpage_url') or track.get('url')
-        if not url:
-            return False
+    async def show_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Показывает настройки"""
+        user = update.effective_user
+        self.ensure_user(user.id)
 
-        async with self.download_semaphore:
-            try:
-                # Этап 1: Начало скачивания
-                await status_msg.edit_text(
-                    f"⏬ <b>Начинаю скачивание</b>\n\n"
-                    f"🎵 Трек: <b>{track.get('title', 'Неизвестный трек')}</b>\n"
-                    f"⏱️ Длительность: {self.format_duration(track.get('duration'))}\n"
-                    f"⚡ Ожидайте ~15-30 секунд",
-                    parse_mode='HTML'
-                )
-                
-                # Этап 2: Скачивание
-                await status_msg.edit_text(
-                    f"⏬ <b>Скачивание аудио</b>\n\n"
-                    f"🎵 Трек: <b>{track.get('title', 'Неизвестный трек')}</b>\n"
-                    f"📊 Статус: ⬇️ Скачивание аудио\n"
-                    f"⏰ Подождите немного...",
-                    parse_mode='HTML'
-                )
-                
-                # Здесь происходит фактическое скачивание...
-                success = await self.simple_download_without_notifications(update, context, track)
-                
-                if success:
-                    # Этап 3: Успешное завершение
-                    await status_msg.edit_text(
-                        f"✅ <b>Скачивание завершено!</b>\n\n"
-                        f"🎵 Трек: <b>{track.get('title', 'Неизвестный трек')}</b>\n"
-                        f"🎤 Исполнитель: {track.get('artist', 'Неизвестный исполнитель')}\n"
-                        f"⏱️ Длительность: {self.format_duration(track.get('duration'))}\n\n"
-                        f"📥 Трек отправлен в чат!",
-                        parse_mode='HTML'
-                    )
-                    return True
-                else:
-                    # Этап 4: Ошибка
-                    await status_msg.edit_text(
-                        f"❌ <b>Ошибка скачивания</b>\n\n"
-                        f"🎵 Трек: <b>{track.get('title', 'Неизвестный трек')}</b>\n"
-                        f"📊 Проблема: Ошибка скачивания\n\n"
-                        f"💡 Попробуйте другой трек",
-                        parse_mode='HTML'
-                    )
-                    return False
-                    
-            except Exception as e:
-                logger.exception(f'Ошибка скачивания случайного трека: {e}')
-                await status_msg.edit_text(
-                    f"❌ <b>Ошибка скачивания</b>\n\n"
-                    f"🎵 Трек: <b>{track.get('title', 'Неизвестный трек')}</b>\n"
-                    f"📊 Проблема: Ошибка скачивания\n\n"
-                    f"💡 Попробуйте другой трек",
-                    parse_mode='HTML'
-                )
-                return False
+        filters = user_data[str(user.id)]['filters']
+        current_duration = DURATION_FILTERS.get(filters.get('duration', 'no_filter'), 'Без фильтра')
+        music_only = "✅ ВКЛ" if filters.get('music_only') else "❌ ВЫКЛ"
 
-    async def simple_download_without_notifications(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict) -> bool:
-        """ПРОСТОЕ скачивание БЕЗ уведомлений (для случайного трека)"""
-        url = track.get('webpage_url') or track.get('url')
-        if not url:
-            return False
+        text = f"""⚙️ <b>Настройки фильтров</b>
 
-        loop = asyncio.get_event_loop()
-        tmpdir = tempfile.mkdtemp()
+⏱️ <b>Фильтр по длительности:</b> {current_duration}
+🎵 <b>Только музыка:</b> {music_only}
+
+Выберите настройку для изменения:"""
+
+        keyboard = [
+            [InlineKeyboardButton('⏱️ Фильтр по длительности', callback_data='duration_menu')],
+            [InlineKeyboardButton(f'🎵 Только музыка: {music_only}', callback_data='toggle_music')],
+            [InlineKeyboardButton('🔙 Назад в меню', callback_data='back_to_main')],
+        ]
+
+        if update.callback_query:
+            await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
+        else:
+            await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
+
+    async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик текстовых сообщений"""
+        text = update.message.text.strip()
+        user = update.effective_user
+        self.ensure_user(user.id)
         
+        if len(text) < 2:
+            await update.message.reply_text('❌ Введите хотя бы 2 символа')
+            return
+
+        stats = user_data['_user_stats'][str(user.id)]
+        stats['searches'] += 1
+        stats['last_search'] = datetime.now().strftime('%d.%m.%Y %H:%M')
+
+        user_entry = user_data[str(user.id)]
+        history = user_entry.get('search_history', [])
+        history = [text] + [h for h in history if h != text][:9]
+        user_entry['search_history'] = history
+
         try:
-            ydl_opts = SIMPLE_DOWNLOAD_OPTS.copy()
-            ydl_opts['outtmpl'] = os.path.join(tmpdir, '%(title).100s.%(ext)s')
+            await self.notifications.send_progress(update, context, 'searching')
+        except:
+            return
 
-            def download_track():
-                try:
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        return ydl.extract_info(url, download=True)
-                except Exception as e:
-                    logger.error(f"Ошибка в download_track: {e}")
-                    return None
+        try:
+            results = await self.search_soundcloud(text)
+            if not results:
+                await update.message.reply_text('❌ По вашему запросу ничего не найдено.')
+                return
 
-            info = await asyncio.wait_for(
-                loop.run_in_executor(None, download_track),
-                timeout=DOWNLOAD_TIMEOUT - 30
-            )
+            user_entry['search_results'] = results
+            user_entry['search_query'] = text
+            user_entry['current_page'] = 0
+            user_entry['total_pages'] = (len(results) + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE
+            save_data()
 
-            if not info:
-                logger.error("❌ Не удалось скачать трек")
-                return False
-
-            # ТОЛЬКО TELEGRAM-СОВМЕСТИМЫЕ ФОРМАТЫ
-            telegram_audio_extensions = ['.mp3', '.m4a', '.ogg', '.wav', '.flac']
-            audio_files = []
-            
-            for file in os.listdir(tmpdir):
-                file_ext = os.path.splitext(file)[1].lower()
-                if file_ext in telegram_audio_extensions:
-                    audio_files.append(file)
-                    logger.info(f"✅ Найден Telegram-совместимый файл: {file}")
-
-            if not audio_files:
-                logger.error(f"❌ Telegram-совместимые файлы не найдены. Содержимое: {os.listdir(tmpdir)}")
-                return False
-            
-            # Используем первый совместимый файл
-            audio_file = audio_files[0]
-            fpath = os.path.join(tmpdir, audio_file)
-            
-            # Проверяем размер файла (на всякий случай)
-            actual_size_mb = os.path.getsize(fpath) / (1024 * 1024)
-            
-            if actual_size_mb >= MAX_FILE_SIZE_MB:
-                return False
-
-            # Отправляем файл как аудио
-            with open(fpath, 'rb') as f:
-                await context.bot.send_audio(
-                    chat_id=update.effective_chat.id,
-                    audio=f,
-                    title=(track.get('title') or 'Неизвестный трек')[:64],
-                    performer=(track.get('artist') or 'Неизвестный исполнитель')[:64],
-                    caption=f"🎵 <b>{track.get('title', 'Неизвестный трек')}</b>\n🎤 {track.get('artist', 'Неизвестный исполнитель')}\n⏱️ {self.format_duration(track.get('duration'))}\n💾 {actual_size_mb:.1f} MB",
-                    parse_mode='HTML',
-                )
-            
-            logger.info(f"✅ Трек отправлен в Telegram-совместимом формате: {audio_file} ({actual_size_mb:.1f} MB)")
-            return True
-
-        except asyncio.TimeoutError:
-            logger.error(f"Таймаут при скачивании: {track.get('title', 'Unknown')}")
-            return False
+            await self.show_results_page(update, context, user.id, 0)
         except Exception as e:
-            logger.exception(f'Ошибка скачивания: {e}')
-            return False
-        finally:
-            # Аккуратная очистка временных файлов
-            try:
-                shutil.rmtree(tmpdir, ignore_errors=True)
-            except Exception as e:
-                logger.warning(f"Не удалось очистить временную директорию: {e}")
+            logger.exception('Ошибка при поиске')
+            await update.message.reply_text('❌ Ошибка при поиске.')
 
-    # ==================== ОБРАБОТЧИКИ CALLBACK ====================
+    async def show_results_page(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, page: int):
+        """Показывает страницу результатов поиска"""
+        user_entry = user_data.get(str(user_id), {})
+        results = user_entry.get('search_results', [])
+        total_pages = user_entry.get('total_pages', 0)
+        query = user_entry.get('search_query', '')
+
+        if page < 0 or page >= max(1, total_pages):
+            page = 0
+
+        start = page * RESULTS_PER_PAGE
+        end = min(start + RESULTS_PER_PAGE, len(results))
+
+        text = f"🔍 <b>Результаты по запросу:</b> <code>{query}</code>\n"
+        text += f"📄 Страница {page + 1} из {max(1, total_pages)}\n"
+        text += f"🎵 Найдено: {len(results)} результатов\n\n"
+
+        keyboard = []
+        for idx in range(start, end):
+            track = results[idx]
+            title = track.get('title', 'Неизвестный трек')
+            artist = track.get('artist', 'Неизвестный исполнитель')
+            duration = self.format_duration(track.get('duration'))
+
+            short_title = title if len(title) <= 30 else title[:27] + '...'
+            short_artist = artist if len(artist) <= 18 else artist[:15] + '...'
+
+            button_text = f"🎵 {idx + 1}. {short_title} • {short_artist} • {duration}"
+            keyboard.append([InlineKeyboardButton(button_text, callback_data=f'download:{idx}:{page}')])
+
+        nav_buttons = []
+        if page > 0:
+            nav_buttons.append(InlineKeyboardButton('⬅️ Назад', callback_data=f'page:{page-1}'))
+        if total_pages > 1:
+            nav_buttons.append(InlineKeyboardButton(f'{page + 1}/{total_pages}', callback_data='current_page'))
+        if page < total_pages - 1:
+            nav_buttons.append(InlineKeyboardButton('Вперед ➡️', callback_data=f'page:{page+1}'))
+        if nav_buttons:
+            keyboard.append(nav_buttons)
+
+        keyboard.extend([
+            [InlineKeyboardButton('🔍 Новый поиск', callback_data='new_search')],
+            [InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track')],
+            [InlineKeyboardButton('⚙️ Настройки', callback_data='settings')],
+        ])
+
+        try:
+            if update.callback_query:
+                await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
+            else:
+                await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
+        except Exception as e:
+            logger.warning(f'Ошибка отображения страницы результатов: {e}')
+
+        user_data[str(user_id)]['current_page'] = page
+        save_data()
+
+    async def download_by_index(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int, return_page: int = 0):
+        """Скачивание трека по индексу"""
+        query = update.callback_query
+        user = update.effective_user
+
+        user_entry = user_data.get(str(user.id), {})
+        results = user_entry.get('search_results', [])
+        if index < 0 or index >= len(results):
+            await query.edit_message_text('❌ Трек не найден')
+            return
+
+        track = results[index]
+        success = await self.download_and_send_track(update, context, track)
+        
+        if success:
+            stats = user_data.get('_user_stats', {}).get(str(user.id), {})
+            stats['downloads'] = stats.get('downloads', 0) + 1
+            save_data()
+
+            user_entry = user_data[str(user.id)]
+            download_history = user_entry.get('download_history', [])
+            download_history.append(track)
+            user_entry['download_history'] = download_history[-50:]
+            save_data()
+
+            # Возвращаемся к той же странице результатов
+            await self.show_results_page(update, context, user.id, return_page)
+
+    # ==================== CALLBACK ОБРАБОТЧИКИ ====================
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
@@ -1699,13 +1413,16 @@ class StableMusicBot:
                 await self.show_settings(update, context)
                 return
 
-            # ИСПРАВЛЕНИЕ: Добавлен обработчик для кнопки фильтра по длительности
             if data == 'duration_menu':
                 await self.show_duration_menu(update, context)
                 return
 
             if data == 'back_to_main':
                 await self.show_main_menu(update, context)
+                return
+
+            if data == 'toggle_music':
+                await self.toggle_music_filter(update, context)
                 return
 
             if data.startswith('playlist:'):
@@ -1743,13 +1460,6 @@ class StableMusicBot:
                 await self.download_from_playlist(update, context, idx)
                 return
 
-            if data == 'toggle_music':
-                await self.toggle_music_filter(update, context)
-                return
-
-            if data == 'current_page' or data == 'charts_current_page' or data == 'playlist_current_page' or data == 'rec_current_page':
-                return
-
             if data.startswith('set_duration:'):
                 key = data.split(':', 1)[1]
                 await self.set_duration_filter(update, context, key)
@@ -1777,10 +1487,46 @@ class StableMusicBot:
             except:
                 pass
 
+    async def show_main_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Показывает главное меню"""
+        user = update.effective_user
+        
+        text = f"🏠 <b>Главное меню</b>\n\n"
+        text += f"👋 Привет, {user.first_name}!\n\n"
+        text += f"🎵 <b>Выберите действие:</b>"
+
+        keyboard = [
+            [
+                InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track'),
+                InlineKeyboardButton('🔍 Поиск', callback_data='start_search')
+            ],
+            [
+                InlineKeyboardButton('🎯 Рекомендации', callback_data='show_recommendations'),
+                InlineKeyboardButton('📊 Топ чарты', callback_data='show_charts')
+            ],
+            [
+                InlineKeyboardButton('🎭 Настроение', callback_data='mood_playlists'),
+                InlineKeyboardButton('⚙️ Настройки', callback_data='settings')
+            ]
+        ]
+
+        if update.callback_query:
+            await update.callback_query.edit_message_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+        else:
+            await update.message.reply_text(
+                text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML'
+            )
+
     # ==================== ПОИСК И ФИЛЬТРЫ ====================
 
     async def search_soundcloud(self, query: str, album_only: bool = False):
-        """Асинхронный поиск с ограничениями"""
+        """Поиск на SoundCloud"""
         async with self.search_semaphore:
             ydl_opts = {
                 'format': 'bestaudio/best',
@@ -1788,7 +1534,7 @@ class StableMusicBot:
                 'no_warnings': True,
                 'extract_flat': True,
                 'ignoreerrors': True,
-                'noplaylist': True,  # Всегда ищем только треки
+                'noplaylist': True,
                 'socket_timeout': 15,
             }
 
@@ -1796,7 +1542,7 @@ class StableMusicBot:
             try:
                 def perform_search():
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        return ydl.extract_info(f"scsearch30:{query}", download=False)  # Увеличено с 10 до 30
+                        return ydl.extract_info(f"scsearch30:{query}", download=False)
 
                 loop = asyncio.get_event_loop()
                 info = await asyncio.wait_for(
@@ -1824,7 +1570,6 @@ class StableMusicBot:
                     if not title:
                         continue
 
-                    # Ищем только треки (не альбомы)
                     results.append({
                         'title': title,
                         'webpage_url': webpage_url,
@@ -1844,233 +1589,8 @@ class StableMusicBot:
             logger.info(f"✅ SoundCloud: {len(results)} результатов для: '{query}'")
             return results
 
-    def _apply_filters(self, results: list, user_id: int):
-        """ИСПРАВЛЕННЫЙ фильтр по длительности"""
-        filters = user_data.get(str(user_id), {}).get('filters', {'duration': 'no_filter', 'music_only': False})
-        
-        # Определяем максимальную длительность
-        max_dur = float('inf')
-        if filters.get('duration') == 'up_to_5min':
-            max_dur = 300
-        elif filters.get('duration') == 'up_to_10min':
-            max_dur = 600
-        elif filters.get('duration') == 'up_to_20min':
-            max_dur = 1200
-
-        filtered = []
-        for r in results:
-            dur = r.get('duration') or 0
-
-            # Фильтр по длительности
-            if filters.get('duration') != 'no_filter' and dur > max_dur:
-                continue
-
-            # Фильтр "Только музыка"
-            if filters.get('music_only'):
-                title_l = r.get('title', '').lower()
-                non_music = ['podcast', 'interview', 'lecture', 'speech', 'documentary', 'concert']
-                if any(k in title_l for k in non_music):
-                    continue
-                if dur and dur > 3600:  # Исключаем очень длинные записи
-                    continue
-
-            filtered.append(r)
-
-        return filtered
-
-    async def show_results_page(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int, page: int):
-        user_entry = user_data.get(str(user_id), {})
-        results = user_entry.get('search_results', [])
-        total_pages = user_entry.get('total_pages', 0)
-        query = user_entry.get('search_query', '')
-        filters = user_data.get(str(user_id), {}).get('filters', {})
-
-        if page < 0 or page >= max(1, total_pages):
-            page = 0
-
-        start = page * RESULTS_PER_PAGE
-        end = min(start + RESULTS_PER_PAGE, len(results))
-
-        text = f"🔍 <b>Результаты по запросу:</b> <code>{query}</code>\n"
-        text += f"📄 Страница {page + 1} из {max(1, total_pages)}\n"
-        text += f"🎵 Найдено: {len(results)} результатов\n\n"
-
-        keyboard = []
-        for idx in range(start, end):
-            r = results[idx]
-
-            title = r.get('title', 'Неизвестный трек')
-            artist = r.get('artist', 'Неизвестный исполнитель')
-            duration = self.format_duration(r.get('duration'))
-
-            short_title = title if len(title) <= 30 else title[:27] + '...'
-            short_artist = artist if len(artist) <= 18 else artist[:15] + '...'
-
-            button_text = f"🎵 {idx + 1}. {short_title} • {short_artist} • {duration}"
-            keyboard.append([InlineKeyboardButton(button_text, callback_data=f'download:{idx}:{page}')])
-
-        nav = []
-        if page > 0:
-            nav.append(InlineKeyboardButton('⬅️ Назад', callback_data=f'page:{page-1}'))
-        if total_pages > 1:
-            nav.append(InlineKeyboardButton(f'{page + 1}/{total_pages}', callback_data='current_page'))
-        if page < total_pages - 1:
-            nav.append(InlineKeyboardButton('Вперед ➡️', callback_data=f'page:{page+1}'))
-        if nav:
-            keyboard.append(nav)
-
-        keyboard.extend([
-            [InlineKeyboardButton('🔍 Новый поиск', callback_data='new_search')],
-            [InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track')],
-            [InlineKeyboardButton('⚙️ Настройки', callback_data='settings')],
-        ])
-
-        try:
-            if update.callback_query:
-                await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
-            else:
-                await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
-        except Exception as e:
-            logger.warning(f'Ошибка отображения страницы результатов: {e}')
-
-        user_data[str(user_id)]['current_page'] = page
-        save_data()
-
-    async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        text = (update.message.text or '').strip()
-        if not text or text.startswith('/'):
-            return
-        await self.search_music(update, context, text)
-
-    async def search_music(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query_text: str = None):
-        user = update.effective_user
-        self.ensure_user(user.id)
-
-        if query_text is None:
-            query_text = (update.message.text or '').strip()
-
-        if len(query_text) < 2:
-            await update.message.reply_text('❌ Введите хотя бы 2 символа')
-            return
-
-        stats = user_data['_user_stats'][str(user.id)]
-        stats['searches'] += 1
-        stats['last_search'] = datetime.now().strftime('%d.%m.%Y %H:%M')
-
-        user_entry = user_data[str(user.id)]
-        history = user_entry.get('search_history', [])
-        history = [query_text] + [h for h in history if h != query_text][:9]
-        user_entry['search_history'] = history
-
-        try:
-            await self.send_smart_notification(
-                update, context, 'search_start',
-                query=query_text
-            )
-        except:
-            return
-
-        try:
-            results = await self.search_soundcloud(query_text)
-            if not results:
-                await self.send_smart_notification(
-                    update, context, 'search_results',
-                    query=query_text, results_count=0, filtered_count=0
-                )
-                return
-
-            # ПРИМЕНЯЕМ ФИЛЬТРЫ (исправлено)
-            filtered = self._apply_filters(results, user.id)
-            if not filtered:
-                await self.send_smart_notification(
-                    update, context, 'search_results',
-                    query=query_text, results_count=len(results), filtered_count=0
-                )
-                return
-
-            user_entry['search_results'] = filtered
-            user_entry['search_query'] = query_text
-            user_entry['current_page'] = 0
-            user_entry['total_pages'] = (len(filtered) + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE
-            save_data()
-
-            await self.send_smart_notification(
-                update, context, 'search_results',
-                query=query_text, 
-                results_count=len(results), 
-                filtered_count=len(filtered),
-                duration_filter=user_entry['filters']['duration']
-            )
-
-            await self.show_results_page(update, context, user.id, 0)
-        except Exception as e:
-            logger.exception('Ошибка при поиске')
-            await self.send_smart_notification(
-                update, context, 'download_error',
-                track={'title': query_text}, error_type='download_failed'
-            )
-
-    async def show_main_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Показывает главное меню с умными уведомлениями"""
-        await self.send_smart_notification(update, context, 'main_menu')
-
-        keyboard = [
-            [
-                InlineKeyboardButton('🎲 Случайный трек', callback_data='random_track'),
-                InlineKeyboardButton('🔍 Поиск', callback_data='start_search')
-            ],
-            [
-                InlineKeyboardButton('🎯 Рекомендации', callback_data='show_recommendations'),
-                InlineKeyboardButton('📊 Топ чарты', callback_data='show_charts')
-            ],
-            [
-                InlineKeyboardButton('🎭 Настроение', callback_data='mood_playlists'),
-                InlineKeyboardButton('⚙️ Настройки', callback_data='settings')
-            ]
-        ]
-
-        if update.callback_query:
-            await update.callback_query.edit_message_text(
-                "🎵 <b>SoundCloud Music Bot</b>\n\nВыберите действие:",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-        else:
-            await update.message.reply_text(
-                "🎵 <b>SoundCloud Music Bot</b>\n\nВыберите действие:",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode='HTML'
-            )
-
-    # ==================== НАСТРОЙКИ ====================
-
-    async def show_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user = update.effective_user
-        self.ensure_user(user.id)
-
-        filters = user_data[str(user.id)]['filters']
-        current_duration = DURATION_FILTERS.get(filters.get('duration', 'no_filter'), 'Без фильтра')
-        music_only = "✅ ВКЛ" if filters.get('music_only') else "❌ ВЫКЛ"
-
-        text = f"""⚙️ <b>Настройки фильтров</b>
-
-⏱️ <b>Фильтр по длительности:</b> {current_duration}
-🎵 <b>Только музыка:</b> {music_only}
-
-Выберите настройку для изменения:"""
-
-        keyboard = [
-            [InlineKeyboardButton('⏱️ Фильтр по длительности', callback_data='duration_menu')],
-            [InlineKeyboardButton(f'🎵 Только музыка: {music_only}', callback_data='toggle_music')],
-            [InlineKeyboardButton('🔙 Назад в меню', callback_data='back_to_main')],
-        ]
-
-        if update.callback_query:
-            await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
-        else:
-            await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
-
     async def show_duration_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Показывает меню фильтров по длительности"""
         user = update.effective_user
         self.ensure_user(user.id)
 
@@ -2088,6 +1608,7 @@ class StableMusicBot:
         await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='HTML')
 
     async def set_duration_filter(self, update: Update, context: ContextTypes.DEFAULT_TYPE, key: str):
+        """Устанавливает фильтр по длительности"""
         user = update.effective_user
         self.ensure_user(user.id)
 
@@ -2099,6 +1620,7 @@ class StableMusicBot:
         await self.show_settings(update, context)
 
     async def toggle_music_filter(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Переключает фильтр 'Только музыка'"""
         user = update.effective_user
         self.ensure_user(user.id)
 
@@ -2110,46 +1632,8 @@ class StableMusicBot:
         await update.callback_query.answer(f'Фильтр "Только музыка" {status}')
         await self.show_settings(update, context)
 
-    # ==================== СКАЧИВАНИЕ ПО ИНДЕКСУ ====================
-
-    async def download_by_index(self, update: Update, context: ContextTypes.DEFAULT_TYPE, index: int, return_page: int = 0):
-        query = update.callback_query
-        user = update.effective_user
-
-        user_entry = user_data.get(str(user.id), {})
-        results = user_entry.get('search_results', [])
-        if index < 0 or index >= len(results):
-            await query.edit_message_text('❌ Трек не найден')
-            return
-
-        track = results[index]
-        await self.download_track(update, context, track, return_page)
-
-    async def download_track(self, update: Update, context: ContextTypes.DEFAULT_TYPE, track: dict, return_page: int = 0):
-        query = update.callback_query
-        user = update.effective_user
-
-        success = await self.download_and_send_track(update, context, track)
-        if success:
-            stats = user_data.get('_user_stats', {}).get(str(user.id), {})
-            stats['downloads'] = stats.get('downloads', 0) + 1
-            save_data()
-
-            user_entry = user_data[str(user.id)]
-            download_history = user_entry.get('download_history', [])
-            download_history.append(track)
-            user_entry['download_history'] = download_history[-50:]
-            save_data()
-
-            # ВОЗВРАЩАЕМСЯ К ТОЙ ЖЕ СТРАНИЦЕ РЕЗУЛЬТАТОВ
-            await self.show_results_page(update, context, user.id, return_page)
-        else:
-            # Если скачивание не удалось (например, файл слишком большой), 
-            # опция онлайн прослушивания уже была показана в download_and_send_track
-            pass
-
     def run(self):
-        print('🚀 Запуск SoundCloud Music Bot...')
+        print('🚀 Запуск улучшенного Music Bot...')
 
         app = Application.builder().token(BOT_TOKEN).build()
 
@@ -2172,11 +1656,11 @@ class StableMusicBot:
             ]
 
             await application.bot.set_my_commands(commands)
-            print('✅ Меню с командами настроено!')
+            print('✅ Улучшенное меню с командами настроено!')
 
         app.post_init = set_commands
 
-        print('✅ Бот запущен и готов к работе!')
+        print('✅ Улучшенный бот запущен и готов к работе!')
         app.run_polling()
 
 if __name__ == '__main__':
