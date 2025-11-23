@@ -1454,7 +1454,7 @@ class StableMusicBot:
                 return
 
             if data.startswith('playlist_download:'):
-                idx = int(data.split(':', 1)[1]
+                idx = int(data.split(':', 1)[1])
                 await self.download_from_playlist(update, context, idx)
                 return
 
