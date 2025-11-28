@@ -1,6 +1,8 @@
+[build]
+builder = "nixpacks"
+
 [deploy]
-build.command = "pip install -r requirements.txt"
-start.command = "python main.py"
+startCommand = "python main.py"
 
 [environments]
   [environments.production]
