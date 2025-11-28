@@ -1,11 +1,14 @@
 [phases.setup]
-nixPkgs = ["ffmpeg", "git"]
+cmds = [
+    "apt-get update",
+    "apt-get install -y ffmpeg curl",
+]
 
 [phases.install]
-cmds = [
-    "pip install --upgrade pip",
-    "pip install -r requirements.txt"
-]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["echo 'Building...'"]
 
 [start]
 cmd = "python main.py"
