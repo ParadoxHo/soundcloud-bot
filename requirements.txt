@@ -1,6 +1,5 @@
 python-telegram-bot==20.7
-yt-dlp==2023.11.16
-psycopg2-binary==2.9.7
+yt-dlp==2024.04.09
 python-dotenv==1.0.0
 requests==2.31.0
-psutil
+psutil==5.9.6
